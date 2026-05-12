@@ -85,6 +85,18 @@ fn bool_arg(args: &Value, key: &str) -> Result<bool, String> {
         .ok_or_else(|| format!("Missing boolean argument: {key}"))
 }
 
+fn optional_i64_arg(args: &Value, key: &str) -> Option<i64> {
+    arg(args, key).and_then(Value::as_i64)
+}
+
+fn u32_arg(args: &Value, key: &str, default: u32) -> Result<u32, String> {
+    match arg(args, key).and_then(Value::as_u64) {
+        Some(value) => u32::try_from(value)
+            .map_err(|_| format!("Argument out of range for u32: {key}")),
+        None => Ok(default),
+    }
+}
+
 fn parse_app(args: &Value) -> Result<AppType, String> {
     AppType::from_str(&string_arg(args, "app")?).map_err(|e| e.to_string())
 }
@@ -381,6 +393,225 @@ async fn handle_rpc_command(state: WebState, command: &str, args: Value) -> Resu
                 .map_err(|e| e.to_string())?;
             ok(Value::Null)
         }
+        "get_default_cost_multiplier" => {
+            let app_type = string_arg(&args, "appType")?;
+            ok(state
+                .app
+                .db
+                .get_default_cost_multiplier(&app_type)
+                .await
+                .map_err(|e| e.to_string())?)
+        }
+        "set_default_cost_multiplier" => {
+            let app_type = string_arg(&args, "appType")?;
+            let value = string_arg(&args, "value")?;
+            state
+                .app
+                .db
+                .set_default_cost_multiplier(&app_type, &value)
+                .await
+                .map_err(|e| e.to_string())?;
+            ok(Value::Null)
+        }
+        "get_pricing_model_source" => {
+            let app_type = string_arg(&args, "appType")?;
+            ok(state
+                .app
+                .db
+                .get_pricing_model_source(&app_type)
+                .await
+                .map_err(|e| e.to_string())?)
+        }
+        "set_pricing_model_source" => {
+            let app_type = string_arg(&args, "appType")?;
+            let value = string_arg(&args, "value")?;
+            state
+                .app
+                .db
+                .set_pricing_model_source(&app_type, &value)
+                .await
+                .map_err(|e| e.to_string())?;
+            ok(Value::Null)
+        }
+        "get_provider_health" => {
+            let provider_id = string_arg(&args, "providerId")?;
+            let app_type = string_arg(&args, "appType")?;
+            ok(state
+                .app
+                .db
+                .get_provider_health(&provider_id, &app_type)
+                .await
+                .map_err(|e| e.to_string())?)
+        }
+        "get_circuit_breaker_stats" => ok(Value::Null),
+        "reset_circuit_breaker" => {
+            let provider_id = string_arg(&args, "providerId")?;
+            let app_type = string_arg(&args, "appType")?;
+            state
+                .app
+                .db
+                .update_provider_health(&provider_id, &app_type, true, None)
+                .await
+                .map_err(|e| e.to_string())?;
+            state
+                .app
+                .proxy_service
+                .reset_provider_circuit_breaker(&provider_id, &app_type)
+                .await?;
+            ok(Value::Null)
+        }
+        "get_circuit_breaker_config" => ok(state
+            .app
+            .db
+            .get_circuit_breaker_config()
+            .await
+            .map_err(|e| e.to_string())?),
+        "update_circuit_breaker_config" => {
+            let config = serde_json::from_value(
+                arg(&args, "config")
+                    .cloned()
+                    .ok_or_else(|| "Missing config argument".to_string())?,
+            )
+            .map_err(|e| e.to_string())?;
+            state
+                .app
+                .db
+                .update_circuit_breaker_config(&config)
+                .await
+                .map_err(|e| e.to_string())?;
+            state
+                .app
+                .proxy_service
+                .update_circuit_breaker_configs(config)
+                .await?;
+            ok(Value::Null)
+        }
+        "get_failover_queue" => {
+            let app_type = string_arg(&args, "appType")?;
+            ok(state
+                .app
+                .db
+                .get_failover_queue(&app_type)
+                .map_err(|e| e.to_string())?)
+        }
+        "get_available_providers_for_failover" => {
+            let app_type = string_arg(&args, "appType")?;
+            ok(state
+                .app
+                .db
+                .get_available_providers_for_failover(&app_type)
+                .map_err(|e| e.to_string())?)
+        }
+        "add_to_failover_queue" => {
+            let app_type = string_arg(&args, "appType")?;
+            let provider_id = string_arg(&args, "providerId")?;
+            state
+                .app
+                .db
+                .add_to_failover_queue(&app_type, &provider_id)
+                .map_err(|e| e.to_string())?;
+            ok(Value::Null)
+        }
+        "remove_from_failover_queue" => {
+            let app_type = string_arg(&args, "appType")?;
+            let provider_id = string_arg(&args, "providerId")?;
+            state
+                .app
+                .db
+                .remove_from_failover_queue(&app_type, &provider_id)
+                .map_err(|e| e.to_string())?;
+            ok(Value::Null)
+        }
+        "get_auto_failover_enabled" => {
+            let app_type = string_arg(&args, "appType")?;
+            ok(state
+                .app
+                .db
+                .get_proxy_config_for_app(&app_type)
+                .await
+                .map_err(|e| e.to_string())?
+                .auto_failover_enabled)
+        }
+        "set_auto_failover_enabled" => {
+            let app_type = string_arg(&args, "appType")?;
+            let enabled = bool_arg(&args, "enabled")?;
+            let mut config = state
+                .app
+                .db
+                .get_proxy_config_for_app(&app_type)
+                .await
+                .map_err(|e| e.to_string())?;
+            config.auto_failover_enabled = enabled;
+            state
+                .app
+                .db
+                .update_proxy_config_for_app(config)
+                .await
+                .map_err(|e| e.to_string())?;
+            ok(Value::Null)
+        }
+        "get_usage_summary" => ok(state
+            .app
+            .db
+            .get_usage_summary(
+                optional_i64_arg(&args, "startDate"),
+                optional_i64_arg(&args, "endDate"),
+                optional_string_arg(&args, "appType").as_deref(),
+            )
+            .map_err(|e| e.to_string())?),
+        "get_usage_trends" => ok(state
+            .app
+            .db
+            .get_daily_trends(
+                optional_i64_arg(&args, "startDate"),
+                optional_i64_arg(&args, "endDate"),
+                optional_string_arg(&args, "appType").as_deref(),
+            )
+            .map_err(|e| e.to_string())?),
+        "get_provider_stats" => ok(state
+            .app
+            .db
+            .get_provider_stats(
+                optional_i64_arg(&args, "startDate"),
+                optional_i64_arg(&args, "endDate"),
+                optional_string_arg(&args, "appType").as_deref(),
+            )
+            .map_err(|e| e.to_string())?),
+        "get_model_stats" => ok(state
+            .app
+            .db
+            .get_model_stats(
+                optional_i64_arg(&args, "startDate"),
+                optional_i64_arg(&args, "endDate"),
+                optional_string_arg(&args, "appType").as_deref(),
+            )
+            .map_err(|e| e.to_string())?),
+        "get_request_logs" => {
+            let filters: crate::services::usage_stats::LogFilters = serde_json::from_value(
+                arg(&args, "filters").cloned().unwrap_or_else(|| json!({})),
+            )
+            .map_err(|e| e.to_string())?;
+            let page = u32_arg(&args, "page", 0)?;
+            let page_size = u32_arg(&args, "pageSize", 20)?;
+            ok(state
+                .app
+                .db
+                .get_request_logs(&filters, page, page_size)
+                .map_err(|e| e.to_string())?)
+        }
+        "get_request_detail" => {
+            let request_id = string_arg(&args, "requestId")?;
+            ok(state
+                .app
+                .db
+                .get_request_detail(&request_id)
+                .map_err(|e| e.to_string())?)
+        }
+        "get_usage_data_sources" => ok(
+            crate::services::session_usage::get_data_source_breakdown(state.app.db.as_ref())
+                .map_err(|e| e.to_string())?,
+        ),
+        "set_window_theme" => ok(true),
         "auth_start_login" => {
             let provider = string_arg(&args, "authProvider")?;
             match provider.as_str() {

@@ -165,6 +165,27 @@ curl http://127.0.0.1:3001/api/health
 {"ok":true,"name":"cc-switch-web"}
 ```
 
+也可以使用项目自带脚本启动：
+
+```bash
+chmod +x scripts/cc-switch-web.sh
+
+# 前台运行
+./scripts/cc-switch-web.sh run
+
+# 后台运行
+./scripts/cc-switch-web.sh start
+
+# 查看状态
+./scripts/cc-switch-web.sh status
+
+# 查看日志
+./scripts/cc-switch-web.sh logs
+
+# 停止服务
+./scripts/cc-switch-web.sh stop
+```
+
 ### 9. 临时开放访问
 
 如果只是在内网测试，可以绑定到所有网卡：
