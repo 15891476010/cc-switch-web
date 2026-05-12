@@ -311,6 +311,23 @@ async fn handle_rpc_command(state: WebState, command: &str, args: Value) -> Resu
                     .map_err(|e| e.to_string())?)
             }
         }
+        "read_live_provider_settings" => {
+            let app = parse_app(&args)?;
+            ok(ProviderService::read_live_settings(app).map_err(|e| e.to_string())?)
+        }
+        "fetch_models_for_config" => {
+            let base_url = string_arg(&args, "baseUrl")?;
+            let api_key = string_arg(&args, "apiKey")?;
+            let is_full_url = arg(&args, "isFullUrl")
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
+            ok(crate::services::model_fetch::fetch_models(
+                &base_url,
+                &api_key,
+                is_full_url,
+            )
+            .await?)
+        }
         "start_proxy_server" => ok(state.app.proxy_service.start().await?),
         "stop_proxy_with_restore" => {
             state.app.proxy_service.stop_with_restore().await?;
