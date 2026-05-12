@@ -83,15 +83,15 @@ chmod +x scripts/auto-deploy-linux.sh scripts/cc-switch-web.sh
 默认监听：
 
 ```text
-[::]:3001,0.0.0.0:3001
+[::]:3650,0.0.0.0:3650
 ```
 
-这表示同时尝试监听 IPv6 和 IPv4 公网地址。若系统的 IPv6 socket 已经自动接管 IPv4，`0.0.0.0:3001` 会被自动跳过，不影响启动。
+这表示同时尝试监听 IPv6 和 IPv4 公网地址。若系统的 IPv6 socket 已经自动接管 IPv4，`0.0.0.0:3650` 会被自动跳过，不影响启动。
 
 如需改成仅本机监听：
 
 ```bash
-CC_SWITCH_WEB_BIND=[::1]:3001 ./scripts/auto-deploy-linux.sh
+CC_SWITCH_WEB_BIND=[::1]:3650 ./scripts/auto-deploy-linux.sh
 ```
 
 脚本适配 Ubuntu/Debian、Fedora/RHEL/CentOS/Rocky/AlmaLinux、Arch/Manjaro 等常见发行版。其他系统需要手动安装依赖。
@@ -174,7 +174,7 @@ cargo build --release
 cd /opt/cc-switch-web
 
 CC_SWITCH_WEB=1 \
-CC_SWITCH_WEB_BIND=127.0.0.1:3001 \
+CC_SWITCH_WEB_BIND=127.0.0.1:3650 \
 CC_SWITCH_WEB_DIST=/opt/cc-switch-web/dist \
 ./src-tauri/target/release/cc-switch
 ```
@@ -182,7 +182,7 @@ CC_SWITCH_WEB_DIST=/opt/cc-switch-web/dist \
 本机测试：
 
 ```bash
-curl http://127.0.0.1:3001/api/health
+curl http://127.0.0.1:3650/api/health
 ```
 
 如果返回类似内容，说明服务启动成功：
@@ -218,7 +218,7 @@ chmod +x scripts/cc-switch-web.sh
 
 ```bash
 CC_SWITCH_WEB=1 \
-CC_SWITCH_WEB_BIND=[::]:3001,0.0.0.0:3001 \
+CC_SWITCH_WEB_BIND=[::]:3650,0.0.0.0:3650 \
 CC_SWITCH_WEB_DIST=/opt/cc-switch-web/dist \
 ./src-tauri/target/release/cc-switch
 ```
@@ -226,7 +226,7 @@ CC_SWITCH_WEB_DIST=/opt/cc-switch-web/dist \
 然后访问：
 
 ```text
-http://服务器IP:3001
+http://服务器IP:3650
 ```
 
 不建议生产环境直接这样暴露。
@@ -251,7 +251,7 @@ Type=simple
 User=你的Linux用户名
 WorkingDirectory=/opt/cc-switch-web
 Environment=CC_SWITCH_WEB=1
-Environment=CC_SWITCH_WEB_BIND=127.0.0.1:3001
+Environment=CC_SWITCH_WEB_BIND=127.0.0.1:3650
 Environment=CC_SWITCH_WEB_DIST=/opt/cc-switch-web/dist
 ExecStart=/opt/cc-switch-web/src-tauri/target/release/cc-switch
 Restart=always
@@ -278,7 +278,7 @@ journalctl -u cc-switch-web -f
 
 ## Nginx 反向代理示例
 
-建议只让 Rust 服务监听 `127.0.0.1:3001`，公网访问走 Nginx，并配置 HTTPS 和认证。
+建议只让 Rust 服务监听 `127.0.0.1:3650`，公网访问走 Nginx，并配置 HTTPS 和认证。
 
 ```nginx
 server {
@@ -286,7 +286,7 @@ server {
     server_name your-domain.com;
 
     location / {
-        proxy_pass http://127.0.0.1:3001;
+        proxy_pass http://127.0.0.1:3650;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -308,7 +308,7 @@ sudo systemctl reload nginx
 | 变量 | 说明 | 默认值 |
 | --- | --- | --- |
 | `CC_SWITCH_WEB` | 是否启用 Web 模式，设置为 `1` 或 `true` | 未启用 |
-| `CC_SWITCH_WEB_BIND` | Web 服务监听地址 | `[::]:3001,0.0.0.0:3001` |
+| `CC_SWITCH_WEB_BIND` | Web 服务监听地址 | `[::]:3650,0.0.0.0:3650` |
 | `CC_SWITCH_WEB_DIST` | 前端静态文件目录 | 当前目录下的 `dist` |
 
 也可以使用启动参数：
@@ -357,7 +357,7 @@ CC_SWITCH_WEB=1 CC_SWITCH_WEB_DIST=../dist cargo run -- --web
 如果前端开发服务器和后端端口不同，可以通过 `VITE_CC_SWITCH_API_BASE` 指向后端：
 
 ```bash
-VITE_CC_SWITCH_API_BASE=http://127.0.0.1:3001 pnpm dev:renderer
+VITE_CC_SWITCH_API_BASE=http://127.0.0.1:3650 pnpm dev:renderer
 ```
 
 ## 开源说明

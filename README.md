@@ -148,7 +148,7 @@ cargo build --release
 cd /opt/cc-switch-web
 
 CC_SWITCH_WEB=1 \
-CC_SWITCH_WEB_BIND=127.0.0.1:3001 \
+CC_SWITCH_WEB_BIND=127.0.0.1:3650 \
 CC_SWITCH_WEB_DIST=/opt/cc-switch-web/dist \
 ./src-tauri/target/release/cc-switch
 ```
@@ -156,7 +156,7 @@ CC_SWITCH_WEB_DIST=/opt/cc-switch-web/dist \
 本机测试：
 
 ```bash
-curl http://127.0.0.1:3001/api/health
+curl http://127.0.0.1:3650/api/health
 ```
 
 如果返回类似内容，说明服务启动成功：
@@ -171,7 +171,7 @@ curl http://127.0.0.1:3001/api/health
 
 ```bash
 CC_SWITCH_WEB=1 \
-CC_SWITCH_WEB_BIND=0.0.0.0:3001 \
+CC_SWITCH_WEB_BIND=0.0.0.0:3650 \
 CC_SWITCH_WEB_DIST=/opt/cc-switch-web/dist \
 ./src-tauri/target/release/cc-switch
 ```
@@ -179,7 +179,7 @@ CC_SWITCH_WEB_DIST=/opt/cc-switch-web/dist \
 然后访问：
 
 ```text
-http://服务器IP:3001
+http://服务器IP:3650
 ```
 
 不建议生产环境直接这样暴露。
@@ -204,7 +204,7 @@ Type=simple
 User=你的Linux用户名
 WorkingDirectory=/opt/cc-switch-web
 Environment=CC_SWITCH_WEB=1
-Environment=CC_SWITCH_WEB_BIND=127.0.0.1:3001
+Environment=CC_SWITCH_WEB_BIND=127.0.0.1:3650
 Environment=CC_SWITCH_WEB_DIST=/opt/cc-switch-web/dist
 ExecStart=/opt/cc-switch-web/src-tauri/target/release/cc-switch
 Restart=always
@@ -231,7 +231,7 @@ journalctl -u cc-switch-web -f
 
 ## Nginx 反向代理示例
 
-建议只让 Rust 服务监听 `127.0.0.1:3001`，公网访问走 Nginx，并配置 HTTPS 和认证。
+建议只让 Rust 服务监听 `127.0.0.1:3650`，公网访问走 Nginx，并配置 HTTPS 和认证。
 
 ```nginx
 server {
@@ -239,7 +239,7 @@ server {
     server_name your-domain.com;
 
     location / {
-        proxy_pass http://127.0.0.1:3001;
+        proxy_pass http://127.0.0.1:3650;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -261,7 +261,7 @@ sudo systemctl reload nginx
 | 变量                 | 说明                                    | 默认值              |
 | -------------------- | --------------------------------------- | ------------------- |
 | `CC_SWITCH_WEB`      | 是否启用 Web 模式，设置为 `1` 或 `true` | 未启用              |
-| `CC_SWITCH_WEB_BIND` | Web 服务监听地址                        | `127.0.0.1:3001`    |
+| `CC_SWITCH_WEB_BIND` | Web 服务监听地址                        | `127.0.0.1:3650`    |
 | `CC_SWITCH_WEB_DIST` | 前端静态文件目录                        | 当前目录下的 `dist` |
 
 也可以使用启动参数：
@@ -310,7 +310,7 @@ CC_SWITCH_WEB=1 CC_SWITCH_WEB_DIST=../dist cargo run -- --web
 如果前端开发服务器和后端端口不同，可以通过 `VITE_CC_SWITCH_API_BASE` 指向后端：
 
 ```bash
-VITE_CC_SWITCH_API_BASE=http://127.0.0.1:3001 pnpm dev:renderer
+VITE_CC_SWITCH_API_BASE=http://127.0.0.1:3650 pnpm dev:renderer
 ```
 
 ## 开源说明

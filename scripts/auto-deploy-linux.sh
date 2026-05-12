@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_NAME="cc-switch-web"
-DEFAULT_BIND="[::]:3001,0.0.0.0:3001"
+DEFAULT_BIND="[::]:3650,0.0.0.0:3650"
 PNPM_VERSION="9.15.9"
 NODE_MAJOR="20"
 RUST_TOOLCHAIN="1.95"
@@ -232,7 +232,8 @@ Deployment finished.
 
 Project: $APP_DIR
 Bind:    $CC_SWITCH_WEB_BIND
-URL:     http://$CC_SWITCH_WEB_BIND
+IPv4:    http://YOUR_SERVER_IPV4:3650
+IPv6:    http://[YOUR_SERVER_IPV6]:3650
 
 Useful commands:
   cd $APP_DIR

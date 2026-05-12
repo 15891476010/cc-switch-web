@@ -6,7 +6,7 @@ APP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 BIN="${CC_SWITCH_BIN:-$APP_DIR/src-tauri/target/release/cc-switch}"
 DIST="${CC_SWITCH_WEB_DIST:-$APP_DIR/dist}"
-BIND="${CC_SWITCH_WEB_BIND:-[::]:3001,0.0.0.0:3001}"
+BIND="${CC_SWITCH_WEB_BIND:-[::]:3650,0.0.0.0:3650}"
 LOG_FILE="${CC_SWITCH_WEB_LOG:-$APP_DIR/cc-switch-web.log}"
 PID_FILE="${CC_SWITCH_WEB_PID:-/tmp/cc-switch-web.pid}"
 
@@ -82,7 +82,7 @@ start_background() {
 
   echo $! >"$PID_FILE"
   echo "CC Switch Web started, pid=$(cat "$PID_FILE")"
-  echo "URL: http://$BIND"
+  echo "Bind: $BIND"
   echo "Log: $LOG_FILE"
 }
 
@@ -117,7 +117,7 @@ stop_background() {
 show_status() {
   if pid_is_running; then
     echo "CC Switch Web is running, pid=$(cat "$PID_FILE")"
-    echo "URL: http://$BIND"
+    echo "Bind: $BIND"
     echo "Log: $LOG_FILE"
   else
     echo "CC Switch Web is not running"

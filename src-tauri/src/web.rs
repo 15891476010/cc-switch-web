@@ -882,7 +882,7 @@ pub fn run_web() {
         });
 
         let bind =
-            std::env::var("CC_SWITCH_WEB_BIND").unwrap_or_else(|_| "[::]:3001,0.0.0.0:3001".into());
+            std::env::var("CC_SWITCH_WEB_BIND").unwrap_or_else(|_| "[::]:3650,0.0.0.0:3650".into());
         let addrs = parse_bind_addrs(&bind).unwrap_or_else(|err| {
             eprintln!("Invalid CC_SWITCH_WEB_BIND value '{bind}': {err}");
             std::process::exit(1);
