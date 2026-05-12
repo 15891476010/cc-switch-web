@@ -83,13 +83,15 @@ chmod +x scripts/auto-deploy-linux.sh scripts/cc-switch-web.sh
 默认监听：
 
 ```text
-0.0.0.0:3001
+[::]:3001,0.0.0.0:3001
 ```
+
+这表示同时尝试监听 IPv6 和 IPv4 公网地址。若系统的 IPv6 socket 已经自动接管 IPv4，`0.0.0.0:3001` 会被自动跳过，不影响启动。
 
 如需改成仅本机监听：
 
 ```bash
-CC_SWITCH_WEB_BIND=127.0.0.1:3001 ./scripts/auto-deploy-linux.sh
+CC_SWITCH_WEB_BIND=[::1]:3001 ./scripts/auto-deploy-linux.sh
 ```
 
 脚本适配 Ubuntu/Debian、Fedora/RHEL/CentOS/Rocky/AlmaLinux、Arch/Manjaro 等常见发行版。其他系统需要手动安装依赖。
@@ -216,7 +218,7 @@ chmod +x scripts/cc-switch-web.sh
 
 ```bash
 CC_SWITCH_WEB=1 \
-CC_SWITCH_WEB_BIND=0.0.0.0:3001 \
+CC_SWITCH_WEB_BIND=[::]:3001,0.0.0.0:3001 \
 CC_SWITCH_WEB_DIST=/opt/cc-switch-web/dist \
 ./src-tauri/target/release/cc-switch
 ```
@@ -306,7 +308,7 @@ sudo systemctl reload nginx
 | 变量 | 说明 | 默认值 |
 | --- | --- | --- |
 | `CC_SWITCH_WEB` | 是否启用 Web 模式，设置为 `1` 或 `true` | 未启用 |
-| `CC_SWITCH_WEB_BIND` | Web 服务监听地址 | `127.0.0.1:3001` |
+| `CC_SWITCH_WEB_BIND` | Web 服务监听地址 | `[::]:3001,0.0.0.0:3001` |
 | `CC_SWITCH_WEB_DIST` | 前端静态文件目录 | 当前目录下的 `dist` |
 
 也可以使用启动参数：

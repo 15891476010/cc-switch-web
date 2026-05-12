@@ -6,7 +6,7 @@ APP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 BIN="${CC_SWITCH_BIN:-$APP_DIR/src-tauri/target/release/cc-switch}"
 DIST="${CC_SWITCH_WEB_DIST:-$APP_DIR/dist}"
-BIND="${CC_SWITCH_WEB_BIND:-0.0.0.0:3001}"
+BIND="${CC_SWITCH_WEB_BIND:-[::]:3001,0.0.0.0:3001}"
 LOG_FILE="${CC_SWITCH_WEB_LOG:-$APP_DIR/cc-switch-web.log}"
 PID_FILE="${CC_SWITCH_WEB_PID:-/tmp/cc-switch-web.pid}"
 
@@ -131,7 +131,17 @@ show_logs() {
 }
 
 check_health() {
-  curl -fsS "http://$BIND/api/health"
+  local host="$BIND"
+  if [[ "$host" == *"0.0.0.0:"* ]]; then
+    local ipv4_part="${host#*0.0.0.0:}"
+    local port="${ipv4_part%%[^0-9]*}"
+    host="127.0.0.1:$port"
+  elif [[ "$host" == "[::]:"* ]]; then
+    host="[::1]:${host##*:}"
+  elif [[ "$host" == "0.0.0.0:"* ]]; then
+    host="127.0.0.1:${host##*:}"
+  fi
+  curl -fsS "http://$host/api/health"
   echo
 }
 

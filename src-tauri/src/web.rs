@@ -7,7 +7,7 @@ use axum::{
 };
 use serde::Serialize;
 use serde_json::{json, Value};
-use std::{net::SocketAddr, str::FromStr, sync::Arc};
+use std::{io, net::SocketAddr, str::FromStr, sync::Arc};
 use tokio::sync::RwLock;
 use tower_http::{cors::CorsLayer, services::ServeDir};
 
@@ -848,6 +848,24 @@ fn init_state() -> Result<WebState, String> {
     })
 }
 
+fn parse_bind_addrs(bind: &str) -> Result<Vec<SocketAddr>, String> {
+    let addrs = bind
+        .split([',', ';', ' '])
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .map(|part| {
+            part.parse::<SocketAddr>()
+                .map_err(|err| format!("Invalid bind address '{part}': {err}"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    if addrs.is_empty() {
+        return Err("CC_SWITCH_WEB_BIND did not contain any bind address".to_string());
+    }
+
+    Ok(addrs)
+}
+
 pub fn run_web() {
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -864,8 +882,8 @@ pub fn run_web() {
         });
 
         let bind =
-            std::env::var("CC_SWITCH_WEB_BIND").unwrap_or_else(|_| "127.0.0.1:3001".into());
-        let addr: SocketAddr = bind.parse().unwrap_or_else(|err| {
+            std::env::var("CC_SWITCH_WEB_BIND").unwrap_or_else(|_| "[::]:3001,0.0.0.0:3001".into());
+        let addrs = parse_bind_addrs(&bind).unwrap_or_else(|err| {
             eprintln!("Invalid CC_SWITCH_WEB_BIND value '{bind}': {err}");
             std::process::exit(1);
         });
@@ -885,17 +903,38 @@ pub fn run_web() {
             .layer(CorsLayer::permissive())
             .with_state(state);
 
-        println!("CC Switch web server listening on http://{addr}");
-        let listener = tokio::net::TcpListener::bind(addr)
-            .await
-            .unwrap_or_else(|err| {
-                eprintln!("Failed to bind web server on {addr}: {err}");
-                std::process::exit(1);
-            });
+        let mut bound = 0usize;
+        for addr in addrs {
+            let listener = match tokio::net::TcpListener::bind(addr).await {
+                Ok(listener) => listener,
+                Err(err) if err.kind() == io::ErrorKind::AddrInUse && bound > 0 => {
+                    eprintln!(
+                        "Skipping {addr}: address already in use. This is expected when the IPv6 listener already accepts IPv4."
+                    );
+                    continue;
+                }
+                Err(err) => {
+                    eprintln!("Failed to bind web server on {addr}: {err}");
+                    continue;
+                }
+            };
 
-        axum::serve(listener, app).await.unwrap_or_else(|err| {
-            eprintln!("CC Switch web server stopped: {err}");
+            bound += 1;
+            println!("CC Switch web server listening on http://{addr}");
+            let app = app.clone();
+            tokio::spawn(async move {
+                axum::serve(listener, app).await.unwrap_or_else(|err| {
+                    eprintln!("CC Switch web server stopped on {addr}: {err}");
+                    std::process::exit(1);
+                });
+            });
+        }
+
+        if bound == 0 {
+            eprintln!("Failed to bind any web server address from CC_SWITCH_WEB_BIND='{bind}'");
             std::process::exit(1);
-        });
+        }
+
+        futures::future::pending::<()>().await;
     });
 }

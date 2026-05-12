@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_NAME="cc-switch-web"
-DEFAULT_BIND="0.0.0.0:3001"
+DEFAULT_BIND="[::]:3001,0.0.0.0:3001"
 PNPM_VERSION="9.15.9"
 NODE_MAJOR="20"
 RUST_TOOLCHAIN="1.95"
@@ -242,7 +242,7 @@ Useful commands:
   ./scripts/cc-switch-web.sh stop
 
 Health check:
-  curl http://$CC_SWITCH_WEB_BIND/api/health
+  ./scripts/cc-switch-web.sh health
 
 EOF
 }
